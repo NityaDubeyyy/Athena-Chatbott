@@ -1,0 +1,229 @@
+// //text based aic chat mesage controller
+// import axios from "axios"
+// import Chat from "../models/Chat.js"
+// import User from "../models/User.js"
+// import imageKit from "../configs/imageKit.js"
+
+
+// export const textMessageController=async(req,res)=>{
+//     try{
+//         const userId=req.user._id
+
+//         if(req.user.credits<1){
+//             return res.json({success:false,message:"you dont have enough credits to use this feature"})
+//         }
+//         const {chatId,prompt}=req.body
+//         const chat=await Chat.findOne({userId,_id:chatId})
+//         chat.messages.push({role:"user", content: prompt,timestamp: Date.now(),
+//         isImage:false})
+
+//         //copied it from google gemini docs
+//         const {choices} = await openai.chat.completions.create({
+//         model: "gemini-2.0-flash",
+//         messages: [
+           
+//             {
+//                 role: "user",
+//                 content: prompt,
+//             },
+//         ],
+//     });
+//     const reply={...choices[0].message,timestamp: Date.now(),isImage:false }
+//     res.json({success:true,reply})
+//     chat.messages.push(reply)
+//     await chat.save()
+//     await User.updateOne({_id:userId},{$inc:{credits:-1}})
+  
+//     }
+//     catch(error){
+//         res.json({success:false,message:error.message})
+
+
+//     }
+// }
+
+// //image generation message controller
+// export const imageMessageController=async(req,res)=>{
+//     try{
+//         const userId=req.user._id;
+
+//         //check credits
+//         if(req.user.credits<2){
+//             return res.json({success:false,message:"you dont have enough credits to use this feature"})
+
+
+//         }
+//         const {prompt,chatId,isPublished}=req.body
+//         //find chat
+//         const chat=await Chat.findOne({userId,_id:chatId})
+//         //push user msg
+//         chat.message.push({
+//             role:"user", 
+//             content: prompt,
+//             timestamp: Date.now(),
+//             isImage:false
+
+//         })
+
+//         //cencode the prompt
+//         const encodedPrompt = encodeURIComponent(prompt);
+
+
+//         //contsruct imagekit ai generation url
+//         const generatedImageUrl=`${process.env.IMAGEKIT_URL_ENDPOINT}/ik-genimg-prompt-${encodedPrompt}/${Date.now()}.png ? tr=w-800,h-800`;
+
+//         //trigger generation by fetching from imagekit
+//         const aiImageResponse= await axios.get(generatedImageUrl,{responseType:"arraybuffer"} )
+
+
+//         //convert to base64
+//         const base64Image=`data:image/png;base64,${Buffer.from(aiImageResponse.data,"binary").toString('base64')}`;
+
+//         //upload to imagekit media library
+//         const uploadResponse=await imageKit.upload({
+//             file:base64Image,
+//             fileName:`${Date.now()}.png`,
+//             folder:"chat-bottt"
+//         })
+//          const reply={
+//             role:'assistant',
+//             content:uploadResponse.url,
+//             timestamp: Date.now(),
+//             isImage:true,
+//             isPublished
+//          }
+//          res.json({success:true,reply})
+//          chat.messages.push(reply)
+//          await chat.save() //save the data to dataabse
+
+//          //in image generation we will detect 2 credits
+//          await User.updateOne({_id:userId},{$inc:{credits:-2}})
+//         }
+//         catch(error){
+//         res.json({success:false,message:error.message});
+
+//         }
+//     }
+// ///for generetaing image ham imageKit ka use krenge its a website for generating and storing image using ai 
+import axios from "axios";
+import Chat from "../models/Chat.js";
+import User from "../models/User.js";
+import imageKit from "../configs/imageKit.js";
+import openai from "../configs/openai.js";
+
+// TEXT MESSAGE CONTROLLER
+export const textMessageController = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        if (req.user.credits < 1) {
+            return res.json({
+                success: false,
+                message: "You don't have enough credits to use this feature"
+            });
+        }
+
+        const { chatId, prompt } = req.body;
+
+        const chat = await Chat.findOne({ userId, _id: chatId });
+        chat.messages.push({
+            role: "user",
+            content: prompt,
+            timestamp: Date.now(),
+            isImage: false
+        });
+
+        // Gemini model (example)
+        const { choices } = await openai.chat.completions.create({
+            model: "gemini-2.0-flash",
+            messages: [
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+        });
+
+        const reply = {
+            ...choices[0].message,
+            timestamp: Date.now(),
+            isImage: false
+        };
+
+        res.json({ success: true, reply });
+
+        chat.messages.push(reply);
+        await chat.save();
+        await User.updateOne({ _id: userId }, { $inc: { credits: -1 } });
+
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
+
+// IMAGE MESSAGE CONTROLLER
+export const imageMessageController = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        if (req.user.credits < 2) {
+            return res.json({
+                success: false,
+                message: "You don't have enough credits to use this feature"
+            });
+        }
+
+        const { prompt, chatId, isPublished } = req.body;
+
+        const chat = await Chat.findOne({ userId, _id: chatId });
+
+        chat.messages.push({
+            role: "user",
+            content: prompt,
+            timestamp: Date.now(),
+            isImage: false
+        });
+
+        // Encode prompt
+        const encodedPrompt = encodeURIComponent(prompt);
+
+        // Construct URL
+        const generatedImageUrl =
+            `${process.env.IMAGEKIT_URL_ENDPOINT}/ik-genimg-prompt-${encodedPrompt}/${Date.now()}.png?tr=w-800,h-800`;
+
+        // Fetch image
+        const aiImageResponse = await axios.get(generatedImageUrl, {
+            responseType: "arraybuffer"
+        });
+
+        // Convert to base64
+        const base64Image =
+            `data:image/png;base64,${Buffer.from(aiImageResponse.data, "binary").toString("base64")}`;
+
+        // Upload to imageKit
+        const uploadResponse = await imageKit.upload({
+            file: base64Image,
+            fileName: `${Date.now()}.png`,
+            folder: "chat-bottt"
+        });
+
+        const reply = {
+            role: "assistant",
+            content: uploadResponse.url,
+            timestamp: Date.now(),
+            isImage: true,
+            isPublished
+        };
+
+        res.json({ success: true, reply });
+
+        chat.messages.push(reply);
+        await chat.save();
+
+        await User.updateOne({ _id: userId }, { $inc: { credits: -2 } });
+
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
