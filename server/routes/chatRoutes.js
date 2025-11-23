@@ -26,9 +26,9 @@ chatRouter.get('/ping', (req, res) => {
     res.send("Ping OK");
 });
 
-chatRouter.post('/create', protect, createChat);
+chatRouter.get('/create', protect, createChat);
 chatRouter.get('/get', protect, getChats);
-chatRouter.delete('/delete', protect, deleteChat);
+chatRouter.post('/delete', protect, deleteChat);
 
 export default chatRouter;
 

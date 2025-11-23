@@ -2,13 +2,43 @@ import React from 'react'
 import Loading from './Loading';
 import { useEffect, useState } from 'react';
 import { dummyPlans } from '../data/dummyData';
+import { useAppContext } from '../context/AppContext';
 
 const Credits = () => {
   const[plans,setPlans]=useState([]);
   const[loading,setLoading]=useState(true);
+  const {token,axios} = useAppContext()
+
   const fetchPlans=async()=>{
-    setPlans(dummyPlans);
-    setLoading(false);
+    try{
+      const {data} = await axios.get('/api/credit/plan', {
+        headers: {Authorization : token}
+
+      })
+      if (data.success){
+        setPlans(data.plans)
+      }else{
+        toast.error(data.message || 'Failed to fetch plans')
+      }
+
+    }catch(error){
+      toast.error(error.message)
+
+    }
+    setLoading(false)
+  }
+  ///for purchaisng pro plans etc
+  const PurchasePlan = async(planId)=>{
+    try{
+      const {data} = await axios.post('/api/credit/purchase', {planId},{headers:{Authorization: token }})
+      if (data.success){
+        window.location.href = data.url
+      }else{
+        toast.error(data.message)
+      }
+    }catch(error){
+      toast.error(error.message)
+    }
 
   }
   useEffect(()=>{
@@ -36,7 +66,7 @@ const Credits = () => {
                   ))}
                 </ul>
               </div>
-              <button className='mt-6 w-full bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors'>Buy Now</button>
+              <button onClick={()=>toast.promise(purchasePlan(plan._id), {loading: 'processing...'})} className='mt-6 w-full bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition-colors'>Buy Now</button>
 
               </div>
           ))}
