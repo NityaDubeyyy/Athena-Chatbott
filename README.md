@@ -1,17 +1,4 @@
-Here is a **professional, clean, perfect README.md** for your **Chatbot MERN Project** including:
-✔ MERN stack
-✔ ImageKit
-✔ Gemini API
-✔ JWT Auth
-✔ Stripe Webhooks
-✔ Postman Testing
-✔ Folder structure
-✔ Setup instructions
-✔ Features
 
-You can copy-paste this directly into **README.md**.
-
----
 
 # 🧠 **Athena-AI – MERN Chatbot Application**
 
